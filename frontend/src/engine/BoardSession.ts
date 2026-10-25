@@ -35,7 +35,7 @@ export class BoardSession {
     this.renderer = new Renderer(canvas, this.camera, this.store, callbacks.metrics);
     initial.strokes.forEach((stroke) => this.renderer.cache.get(stroke));
     this.graph = new GraphController(this.store, (snapshot) => {
-      this.renderer.overlay.set(snapshot); this.renderer.invalidate();
+      this.renderer.overlay.set(snapshot); this.renderer.semantic.set(snapshot.clusters); this.renderer.invalidate();
       if (this.fitGraphNext && !snapshot.processing) { this.fitGraphNext = false; this.input.fit(); }
     }, this.renderer.invalidate);
     this.renderer.syncGraphInteraction = () => {

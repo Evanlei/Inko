@@ -36,10 +36,17 @@ Open **http://127.0.0.1:5173**. FastAPI runs on **http://127.0.0.1:8000**, with 
 - Executable graph playback for BFS, DFS, and Dijkstra, with node distances, frontier highlights, and final routes drawn on the canvas.
 - Undoable connection-weight editing and live vertical scrubbing, including zero and decimal weights.
 - A seven-node, eleven-edge routing demo generated from real ink coordinates, plus a minimal interface with contextual, collapsible controls.
+- Semantic zoom with worker-based bounding-box DBSCAN, incrementally maintained spatial indexing and neighborhood caches, and canvas summaries for graphs and nearby freehand notes.
 
 The canvas currently saves **one workspace in this browser on this device**. Keep the same origin when reopening it: `localhost` and `127.0.0.1` have separate browser storage. Local saving failures are shown in the interface; PNG export remains available. Undo history lasts for the current session.
 
-The frontend is not connected to Yjs room synchronization yet. General mathematical handwriting recognition, reactive math, semantic zoom, and voice are later milestones in the [engineering specification](docs/engineering-spec.md).
+The frontend is not connected to Yjs room synchronization yet. General mathematical handwriting recognition, reactive math, and voice are later milestones in the [engineering specification](docs/engineering-spec.md).
+
+## Zoom out to explore
+
+Between 38% and 18% zoom, nearby strokes cross-fade into workspace summaries. Graph summaries show node and connection counts, a small topology preview, and the current Dijkstra shortest-path cost between the selected endpoints. Separate groups of freehand strokes get their own summaries; isolated strokes remain visible. Summary content is derived in the worker and never replaces saved ink or undo history.
+
+Click or tap a summary to explore that workspace at a readable zoom. Drag across a summary to pan. Use **Fit drawing (`0`)** for the full board or **100% (`1`)** for full ink detail; fitting a large board on a phone may still show an overview. Graph controls collapse at 18% zoom and can be expanded when needed. PNG export always includes the full drawing and graph annotations, regardless of the current overview zoom. Math summaries will follow the math engine milestone.
 
 ## Explore a graph
 
@@ -75,7 +82,7 @@ npm exec --workspace frontend playwright install chromium
 npm run test:e2e
 ```
 
-Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, browser-to-FastAPI transport, real pointer-to-graph recognition, traversal playback, weight edits and cancellation, stale worker results, and graph controls on phones.
+Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, browser-to-FastAPI transport, real pointer-to-graph recognition, traversal playback, weight edits and cancellation, stale worker results, graph controls on phones, and live semantic summaries and navigation.
 
 ## Backend contract
 

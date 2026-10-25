@@ -26,14 +26,15 @@ export class GraphOverlay {
     const detail = zoom >= 0.5;
     const pathEdges = new Set(step?.pathEdgeIds), pathVertices = new Set(step?.pathVertexIds);
     const visited = new Set(step?.visitedVertexIds), frontier = new Set(step?.frontierVertexIds);
+    const opacity = ctx.globalAlpha;
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (const edge of graph.edges) {
       const active = step?.activeEdgeId === edge.id, final = pathEdges.has(edge.id), selected = selectedEdgeId === edge.id;
       if (active || final || selected) {
         ctx.strokeStyle = final ? '#4a9692' : active ? '#c6754f' : '#92a7ba';
-        ctx.lineWidth = (final ? 5 : 4) / zoom; ctx.globalAlpha = 0.75;
+        ctx.lineWidth = (final ? 5 : 4) / zoom; ctx.globalAlpha = 0.75 * opacity;
         const path = this.paths.get(edge.id); if (path) ctx.stroke(path);
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha = opacity;
         if (active && this.animating) {
           const p = edge.controlPoints[Math.floor((now % 1200) / 1200 * edge.controlPoints.length)];
           ctx.fillStyle = '#c6754f'; ctx.beginPath(); ctx.arc(p.x, p.y, 4 / zoom, 0, Math.PI * 2); ctx.fill();

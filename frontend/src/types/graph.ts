@@ -1,4 +1,5 @@
 import type { BBox, Point } from './canvas';
+import type { SemanticCluster } from './semantic';
 
 export type Algorithm = 'dijkstra' | 'bfs' | 'dfs';
 export interface GraphVertex {
@@ -27,11 +28,13 @@ export interface GraphASTNode {
 }
 export interface GraphSettings { startVertexId?: string; targetVertexId?: string }
 export interface GraphSnapshot {
+  clusters: SemanticCluster[];
   graph: GraphASTNode | null; processing: boolean; error: string | null;
   algorithm: Algorithm; stepIndex: number; playing: boolean;
   selectedEdgeId: string | null; workerMs: number;
 }
 export const EMPTY_GRAPH: GraphSnapshot = {
+  clusters: [],
   graph: null, processing: false, error: null, algorithm: 'dijkstra', stepIndex: 0,
   playing: false, selectedEdgeId: null, workerMs: 0,
 };

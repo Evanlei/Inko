@@ -380,8 +380,8 @@ Execute the build in the following 5 phases and verify each checkpoint before pr
 - [ ] Implement inline 2D function plot rendering on the canvas for functions of `x` (`y(x) = ...`) and interactive BFS / DFS / Dijkstra step-by-step animated playback over hand-drawn graphs.
 
 ### Phase 4: DBSCAN Clustering, Semantic LoD Zoom, & Spatial Audio
-- [ ] Implement `dbscan.ts` using `rbush` bounding-box range queries.
-- [ ] Implement the smooth `0.18x – 0.38x` LoD cross-fade in `Renderer.ts` so zooming out collapses math derivations and graphs into high-contrast Semantic Summary Cards with sparklines and live metrics.
+- [x] Implement `dbscan.ts` using `rbush` bounding-box range queries.
+- [ ] Implement the smooth `0.18x – 0.38x` LoD cross-fade in `Renderer.ts` so zooming out collapses math derivations and graphs into high-contrast Semantic Summary Cards with sparklines and live metrics. (Graph and freehand summaries implemented; math summaries await the math engine.)
 - [ ] Implement `BinaryProtocol.ts`, `SyncEngine.ts`, and `SpatialAudio.ts` (including a `"Simulate Peer Cursor & Spatial Audio Orbit"` toggle in the HUD so a single user can watch a simulated collaborator orbit the board while hearing live Web Audio stereo panning and low-pass distance attenuation).
 
 ### Phase 5: One-Click Demo Presets & Verification

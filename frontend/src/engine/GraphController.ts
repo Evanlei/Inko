@@ -46,16 +46,16 @@ export class GraphController {
       this.worker.onmessage = (event: MessageEvent<InkWorkerResponse>) => {
         const response = event.data;
         if (response.revision !== this.revision) return;
-        if (response.type === 'error') { this.emit({ processing: false, error: response.message, playing: false }); return; }
+        if (response.type === 'error') { this.emit({ clusters: [], processing: false, error: response.message, playing: false }); return; }
         const graph = response.graph;
         if (graph) this.settings = { startVertexId: graph.startVertexId, targetVertexId: graph.targetVertexId };
         const selectedEdgeId = graph?.edges.some((e) => e.id === this.state.selectedEdgeId) ? this.state.selectedEdgeId : null;
         const stepIndex = graph && this.showResult ? graph.steps[this.state.algorithm].length - 1 : 0;
-        this.emit({ graph, stepIndex, selectedEdgeId, processing: false, error: null, workerMs: response.elapsedMs });
+        this.emit({ graph, clusters: response.clusters, stepIndex, selectedEdgeId, processing: false, error: null, workerMs: response.elapsedMs });
       };
       this.worker.onerror = (event) => {
         event.preventDefault(); this.worker?.terminate(); this.worker = null; this.pause();
-        this.emit({ graph: null, processing: false, error: 'Graph recognition could not start. Drawing is still available.' });
+        this.emit({ graph: null, clusters: [], processing: false, error: 'Ink analysis could not start. Drawing is still available.' });
       };
       this.flush();
     } catch {
@@ -69,7 +69,7 @@ export class GraphController {
     this.pause(); this.showResult = this.weightCommit;
     window.cancelAnimationFrame(this.previewFrame); this.previewFrame = 0; this.scrub = null;
     change.removed.forEach((s) => this.pending.set(s.id, null)); change.added.forEach((s) => this.pending.set(s.id, s));
-    this.revision++; this.emit({ processing: !!this.worker, stepIndex: 0,
+    this.revision++; this.emit({ clusters: [], processing: !!this.worker, stepIndex: 0,
       ...(!this.store.strokes.size ? { graph: null, selectedEdgeId: null } : {}) });
     window.clearTimeout(this.compileTimer); this.compileTimer = window.setTimeout(this.flush, 120);
   };

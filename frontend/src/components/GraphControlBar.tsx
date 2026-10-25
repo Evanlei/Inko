@@ -18,8 +18,9 @@ function WeightEditor({ edge, controller }: { edge: GraphEdge; controller: Graph
     {error ? <p className="weight-error" role="alert">{error}</p> : null}
   </form>;
 }
-export function GraphControlBar({ snapshot, controller }: { snapshot: GraphSnapshot; controller: GraphController }) {
-  const [collapsed, setCollapsed] = useState(false);
+export function GraphControlBar({ snapshot, controller, overview = false }: { snapshot: GraphSnapshot; controller: GraphController; overview?: boolean }) {
+  const [preference, setPreference] = useState<{ overview: boolean; collapsed: boolean } | null>(null);
+  const collapsed = preference?.overview === overview ? preference.collapsed : overview;
   const { graph, algorithm, stepIndex, playing, processing, selectedEdgeId, error } = snapshot;
   if (error) return <aside className="graph-controls panel graph-error" aria-label="Graph controls"><p>{error}</p><button onClick={controller.retry}>Retry recognition</button></aside>;
   if (!graph) return null;
@@ -31,7 +32,7 @@ export function GraphControlBar({ snapshot, controller }: { snapshot: GraphSnaps
   const metric = algorithm === 'dijkstra' ? result ? 'Shortest route' : 'Tentative cost' : algorithm === 'bfs' ? 'Fewest hops' : 'Traversal depth';
   return <aside className="graph-controls panel" aria-label="Graph controls" aria-busy={processing}>
     <div className="graph-heading"><span>Network</span><span className={`graph-ready ${processing ? 'busy' : ''}`}>{processing ? 'Reading ink…' : 'Live ink'}</span>
-      <button aria-label={collapsed ? 'Expand graph controls' : 'Minimize graph controls'} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</button></div>
+      <button aria-label={collapsed ? 'Expand graph controls' : 'Minimize graph controls'} aria-expanded={!collapsed} onClick={() => setPreference({ overview, collapsed: !collapsed })}>{collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</button></div>
     {!collapsed ? <>
     <p className="graph-count">{graph.vertices.length} nodes · {graph.edges.length} connection{graph.edges.length === 1 ? '' : 's'}</p>
     <div className="algorithm-options" role="group" aria-label="Graph algorithm">

@@ -60,7 +60,7 @@ export function App() {
     </header>
     <ToolbarHUD tool={tool} color={color} size={size} disabled={!board} canUndo={snapshot.canUndo} canRedo={snapshot.canRedo}
       onTool={chooseTool} onColor={chooseColor} onSize={chooseSize} undo={() => board?.store.undo()} redo={() => board?.store.redo()} />
-    {board ? <GraphControlBar snapshot={graph} controller={board.graph} /> : null}
+    {board ? <GraphControlBar snapshot={graph} controller={board.graph} overview={zoom <= 0.18} /> : null}
     <div className="zoom-controls panel" aria-label="Canvas view">
       <button className="icon-button" aria-label="Zoom out" disabled={!board || zoom <= 0.05} onClick={() => board?.input.zoom(0.8)}><Minus size={16} /></button>
       <button className="zoom-value" title="Reset to 100%" aria-label={`Zoom ${Math.round(zoom * 100)} percent. Reset to 100 percent.`} disabled={!board}
@@ -70,7 +70,8 @@ export function App() {
       <button className="icon-button" aria-label="Fit drawing" title="Fit drawing · 0" disabled={!board} onClick={() => board?.input.fit()}><Maximize size={17} /></button>
     </div>
     <footer className="footer">
-      <span className="board-status"><span className="status-dot" /><span>{snapshot.strokeCount ? `${snapshot.strokeCount} stroke${snapshot.strokeCount === 1 ? '' : 's'}` : 'Room for anything'}</span><span className="footer-detail">{metrics.visible} visible · {metrics.paintMs.toFixed(1)} ms paint</span></span>
+      <span className="board-status"><span className="status-dot" /><span>{snapshot.strokeCount ? `${snapshot.strokeCount} stroke${snapshot.strokeCount === 1 ? '' : 's'}` : 'Room for anything'}</span><span className="footer-detail">{metrics.visible} visible · {metrics.paintMs.toFixed(1)} ms paint</span>
+        {zoom < 0.38 && graph.clusters.length > 0 ? <span role="status" aria-label="Semantic overview">{graph.clusters.length} workspace{graph.clusters.length === 1 ? '' : 's'} · overview</span> : null}</span>
       <span className="navigation-hint"><kbd>space</kbd> to pan<span>·</span><kbd>ctrl / ⌘</kbd> + scroll to zoom</span>
       <div className="footer-actions"><button className="clear-button" disabled={!snapshot.strokeCount} onClick={() => board?.store.clear()} title="Clear drawing (can be undone)"><Trash2 size={14} /><span>Clear</span></button>
         <button className="help-button" onClick={showHelp} aria-label="Keyboard shortcuts"><CircleHelp size={18} /><span>Shortcuts</span></button></div>

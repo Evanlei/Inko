@@ -1,11 +1,11 @@
-import type { InkStroke, Point, Tool } from '../types/canvas';
+import type { BBox, InkStroke, Point, Tool } from '../types/canvas';
 import { COLORS, strokeBounds } from '../types/canvas';
 import { Camera } from './Camera';
 import { BoardStore } from './BoardStore';
 import { Renderer } from './Renderer';
 import type { GraphController } from './GraphController';
 
-type Gesture = { id: number; tool: Tool; last: Point; erased: InkStroke[]; stroke?: InkStroke };
+type Gesture = { id: number; tool: Tool; last: Point; erased: InkStroke[]; stroke?: InkStroke; summary?: BBox; origin?: Point };
 export class InputController {
   tool: Tool = 'pen';
   color: string = COLORS[0];
@@ -65,8 +65,9 @@ export class InputController {
       return;
     }
     if (this.gesture || this.touchSuppressed) return;
-    const tool = this.space || event.button === 1 ? 'hand' : event.pointerType === 'pen' && (event.buttons & 32) ? 'eraser' : this.tool;
-    const gesture: Gesture = { id: event.pointerId, tool, last: pos, erased: [] };
+    const summary = this.renderer.semantic.hit(this.camera.screenToWorld(pos), this.camera.zoom);
+    const tool = summary || this.space || event.button === 1 ? 'hand' : event.pointerType === 'pen' && (event.buttons & 32) ? 'eraser' : this.tool;
+    const gesture: Gesture = { id: event.pointerId, tool, last: pos, erased: [], summary: summary ?? undefined, origin: pos };
     this.gesture = gesture;
     if (tool === 'pen') {
       const points = [this.point(event)];
@@ -77,7 +78,7 @@ export class InputController {
       const world = this.camera.screenToWorld(pos);
       gesture.erased.push(...this.store.eraseBetween(world, world, 14 / this.camera.zoom));
     } else if (tool === 'select') {
-      this.graph.pointerDown(pos, this.camera.screenToWorld(pos), this.camera.zoom, event.shiftKey);
+      if (this.camera.zoom >= 0.38) this.graph.pointerDown(pos, this.camera.screenToWorld(pos), this.camera.zoom, event.shiftKey);
     }
     this.updateCursor(); this.renderer.invalidate();
   };
@@ -109,7 +110,11 @@ export class InputController {
       }
       gesture.last = pos;
     }
-    if (this.tool === 'select') this.canvas.style.cursor = this.graph.hover(this.camera.screenToWorld(pos), this.camera.zoom) ? 'ns-resize' : 'default';
+    if (this.tool === 'select') {
+      const world = this.camera.screenToWorld(pos);
+      this.canvas.style.cursor = this.renderer.semantic.hit(world, this.camera.zoom) ? 'zoom-in'
+        : this.camera.zoom >= 0.38 && this.graph.hover(world, this.camera.zoom) ? 'ns-resize' : 'default';
+    }
     if (gesture || this.tool === 'eraser') this.renderer.invalidate();
   };
   private up = (event: PointerEvent) => {
@@ -122,6 +127,14 @@ export class InputController {
         this.store.add([gesture.stroke]);
       } else if (gesture.tool === 'eraser') this.store.finishErase(gesture.erased);
       else if (gesture.tool === 'select') this.graph.pointerUp();
+      else if (gesture.summary && gesture.origin && Math.hypot(gesture.last.x - gesture.origin.x, gesture.last.y - gesture.origin.y) < 5) {
+        this.fitBounds(gesture.summary);
+        if (this.camera.zoom < 0.5) {
+          const b = gesture.summary;
+          const center = this.camera.worldToScreen({ x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 });
+          this.camera.zoomAt(center, 0.5); this.cameraChanged(); this.renderer.invalidate();
+        }
+      }
       this.renderer.activeStroke = null;
     }
     this.pointers.delete(event.pointerId);
@@ -178,11 +191,14 @@ export class InputController {
   zoom(factor: number) { this.camera.zoomAt(this.center(), this.camera.zoom * factor); this.cameraChanged(); this.renderer.invalidate(); }
   fit() {
     const bounds = this.store.bounds();
+    if (bounds) this.fitBounds(bounds);
+    else { this.camera.restore({ x: 0, y: 0, zoom: 1 }); this.cameraChanged(); this.renderer.invalidate(); }
+  }
+  private fitBounds(bounds: BBox) {
     const hasGraph = this.renderer.overlay.visible;
     const width = this.renderer.width - (hasGraph && this.renderer.width >= 1000 ? 350 : 0);
     const height = this.renderer.height - (hasGraph && this.renderer.width < 1000 ? 260 : 0);
-    if (bounds) this.camera.fit(bounds, width, height);
-    else this.camera.restore({ x: 0, y: 0, zoom: 1 });
+    this.camera.fit(bounds, width, height);
     this.cameraChanged(); this.renderer.invalidate();
   }
   dispose() { this.reset(); this.events.abort(); }
