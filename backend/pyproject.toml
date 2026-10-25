@@ -1,0 +1,16 @@
+[project]
+name = "inko-backend"
+version = "0.1.0"
+description = "FastAPI room transport and SQLite persistence for Inko"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.34,<1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,6 +1,8 @@
 # Inko — Computational Multiplayer Whiteboard with Semantic Zoom & Spatial Audio
 ## Master Engineering Specification for Autonomous Coding Agents (Codex / Claude Code)
 
+> Stack decision: React + TypeScript + Vite frontend; Python + FastAPI backend. The first implemented milestone is the drawing canvas and backend transport. See `README.md` for the current feature status and startup instructions; the sections below describe the full product roadmap.
+
 ---
 
 ## 1. Executive Summary & Product Vision
