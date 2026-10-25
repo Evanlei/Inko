@@ -12,8 +12,9 @@ export interface InkStroke {
   size: number;
   semanticRole: 'raw' | 'math_symbol' | 'graph_vertex' | 'graph_edge' | 'graph_weight' | 'plot_axis';
   recognizedToken?: string;
+  graphEdgeId?: string;
 }
-export type Tool = 'pen' | 'eraser' | 'hand';
+export type Tool = 'pen' | 'eraser' | 'hand' | 'select';
 export interface CameraState { x: number; y: number; zoom: number }
 export interface BoardMeta { title: string; camera: CameraState }
 export interface BoardChange { added: InkStroke[]; removed: InkStroke[] }
