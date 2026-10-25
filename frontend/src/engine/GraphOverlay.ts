@@ -23,6 +23,7 @@ export class GraphOverlay {
     const { graph, algorithm, stepIndex, selectedEdgeId } = this.snapshot;
     if (!graph) return;
     const step = graph.steps[algorithm][stepIndex];
+    const detail = zoom >= 0.5;
     const pathEdges = new Set(step?.pathEdgeIds), pathVertices = new Set(step?.pathVertexIds);
     const visited = new Set(step?.visitedVertexIds), frontier = new Set(step?.frontierVertexIds);
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -41,6 +42,7 @@ export class GraphOverlay {
       const box = edge.weightBBox, x = (box.minX + box.maxX) / 2, y = (box.minY + box.maxY) / 2;
       const value = this.preview?.edgeId === edge.id ? this.preview.value : edge.weight;
       const hovered = this.hoveredEdgeId === edge.id;
+      if (!detail && !selected && !hovered) continue;
       const text = hovered ? `↕ ${value}` : String(value);
       ctx.font = `500 ${11 / zoom}px system-ui, sans-serif`;
       const width = ctx.measureText(text).width + 14 / zoom, height = 23 / zoom;
@@ -55,13 +57,13 @@ export class GraphOverlay {
         ctx.fillStyle = final ? '#c6e3e45c' : seen ? '#e1e9f18c' : '#f6e5cf6b';
         ctx.beginPath(); ctx.arc(vertex.center.x, vertex.center.y, vertex.radius * 0.85, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.font = `500 ${14 / zoom}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `500 ${(detail ? 14 : 11) / zoom}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = final ? '#347773' : '#414a54'; ctx.fillText(vertex.label, vertex.center.x, vertex.center.y);
-      if (start || target) {
+      if (detail && (start || target)) {
         ctx.fillStyle = start ? '#bc7557' : '#648b9c'; ctx.font = `500 ${8 / zoom}px system-ui, sans-serif`;
         ctx.fillText(start && target ? 'START / END' : start ? 'START' : 'END', vertex.center.x, vertex.center.y + 16 / zoom);
       }
-      if (stepIndex > 0) {
+      if (detail && stepIndex > 0) {
         const cost = step?.distances[vertex.id], text = cost === 'INF' ? '∞' : String(cost ?? '∞');
         ctx.font = `500 ${10 / zoom}px ui-monospace, monospace`;
         ctx.fillStyle = '#f9fafb';

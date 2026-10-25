@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowDownToLine, Check, CircleHelp, LoaderCircle, Maximize, Minus, Network, Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowDownToLine, Check, CircleHelp, LoaderCircle, Maximize, Minus, Plus, Trash2, TriangleAlert } from 'lucide-react';
 import { BoardSession } from './engine/BoardSession';
 import type { Metrics } from './engine/Renderer';
 import type { SaveStatus } from './storage/BoardPersistence';
+import { COLORS } from './types/canvas';
 import type { BoardSnapshot, Tool } from './types/canvas';
 import { ToolbarHUD } from './components/ToolbarHUD';
 import { KeyboardHelp } from './components/KeyboardHelp';
 import { GraphControlBar } from './components/GraphControlBar';
 import { EMPTY_GRAPH } from './types/graph';
+import { ExamplesMenu } from './components/ExamplesMenu';
 
 const empty: BoardSnapshot = { strokeCount: 0, canUndo: false, canRedo: false };
 const emptySnapshot = () => empty;
@@ -16,7 +18,7 @@ const emptySubscribe = () => () => {};
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null), help = useRef<HTMLDialogElement>(null);
   const [board, setBoard] = useState<BoardSession | null>(null);
-  const [tool, setTool] = useState<Tool>('pen'), [color, setColor] = useState('#303c35'), [size, setSize] = useState(5);
+  const [tool, setTool] = useState<Tool>('pen'), [color, setColor] = useState<string>(COLORS[0]), [size, setSize] = useState(5);
   const [title, setTitle] = useState('Untitled space'), [save, setSave] = useState<SaveStatus>('loading');
   const [zoom, setZoom] = useState(1), [error, setError] = useState('');
   const [metrics, setMetrics] = useState<Metrics>({ total: 0, visible: 0, paintMs: 0 });
@@ -42,25 +44,23 @@ export function App() {
     <canvas ref={canvas} className="board select-none" tabIndex={0} aria-label="Infinite drawing canvas. Use the pen to draw, Space and drag to pan, and Ctrl or Command and scroll to zoom." />
     <header className="header">
       <div className="workspace-identity">
-        <a className="brand" href="/" aria-label="Inko home"><span className="brand-mark" aria-hidden="true"><i /><i /></span><span>inko<span className="brand-dot">.</span></span></a>
+        <a className="brand" href="/" aria-label="Inko home"><span className="brand-mark" aria-hidden="true"><i /><i /></span><span>inko</span></a>
         <span className="header-divider" />
         <div className="document-name"><input aria-label="Workspace name" maxLength={80} value={title} disabled={!board} spellCheck={false}
           onChange={(e) => { setTitle(e.target.value); board?.rename(e.target.value); }}
-          onBlur={() => { if (!title.trim()) { setTitle('Untitled space'); board?.rename('Untitled space'); } }} /><span>YOUR PERSONAL THINKING SPACE</span></div>
+          onBlur={() => { if (!title.trim()) { setTitle('Untitled space'); board?.rename('Untitled space'); } }} /></div>
       </div>
       <div className="header-actions">
         <span className={`save-status ${save === 'error' ? 'save-error' : ''}`} role="status" title={save === 'error' ? 'Your browser could not save this workspace. Export your drawing before leaving.' : 'This workspace is stored in this browser on this device.'}>
           {save === 'saved' ? <Check size={14} /> : save === 'error' ? <TriangleAlert size={14} /> : <LoaderCircle size={14} className="spin" />}<span>{saveLabel}</span>
         </span>
-        <button className="sketch-button" disabled={!board} onClick={() => board?.addSketch()}><Sparkles size={15} /><span>Try a sketch</span></button>
-        <button className="sketch-button" disabled={!board || graph.processing} onClick={() => board?.addGraphDemo()}><Network size={15} /><span>Routing graph</span></button>
-        <button className="export-button" disabled={!board || !snapshot.strokeCount} onClick={() => { board?.export().catch((reason: Error) => setError(reason.message)); }}><ArrowDownToLine size={16} /><span>Export PNG</span></button>
+        <ExamplesMenu disabled={!board || graph.processing} onSketch={() => { chooseTool('pen'); board?.addSketch(); }} onGraph={() => { chooseTool('select'); board?.addGraphDemo(); }} />
+        <button className="export-button" aria-label="Export PNG" title="Export drawing as PNG" disabled={!board || !snapshot.strokeCount} onClick={() => { board?.export().catch((reason: Error) => setError(reason.message)); }}><ArrowDownToLine size={16} strokeWidth={1.4} /></button>
       </div>
     </header>
     <ToolbarHUD tool={tool} color={color} size={size} disabled={!board} canUndo={snapshot.canUndo} canRedo={snapshot.canRedo}
       onTool={chooseTool} onColor={chooseColor} onSize={chooseSize} undo={() => board?.store.undo()} redo={() => board?.store.redo()} />
     {board ? <GraphControlBar snapshot={graph} controller={board.graph} /> : null}
-    <aside className="canvas-note"><span className="note-line" /><span>A space to make<br /><em>something of an idea.</em></span></aside>
     <div className="zoom-controls panel" aria-label="Canvas view">
       <button className="icon-button" aria-label="Zoom out" disabled={!board || zoom <= 0.05} onClick={() => board?.input.zoom(0.8)}><Minus size={16} /></button>
       <button className="zoom-value" title="Reset to 100%" aria-label={`Zoom ${Math.round(zoom * 100)} percent. Reset to 100 percent.`} disabled={!board}

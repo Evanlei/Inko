@@ -48,7 +48,7 @@ test('pan, zoom, erase, and recover a drawing', async ({ page }) => {
   await expect(page.getByText('1 stroke', { exact: true })).toBeVisible();
 });
 test('sample drawing exports an image and clear can be undone', async ({ page }) => {
-  await page.goto('/'); await page.getByRole('button', { name: 'Try a sketch' }).click();
+  await page.goto('/'); await page.getByRole('button', { name: 'Examples', exact: true }).click(); await page.getByRole('button', { name: 'Try a sketch' }).click();
   await expect(page.getByText('13 strokes', { exact: true })).toBeVisible();
   await expect(page.getByText(/13 visible/)).toBeAttached();
   const download = page.waitForEvent('download');

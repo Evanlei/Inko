@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowRight, Check, Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, ChevronUp, Pause, Play, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import type { GraphController } from '../engine/GraphController';
 import type { GraphEdge, GraphSnapshot } from '../types/graph';
 
@@ -19,6 +19,7 @@ function WeightEditor({ edge, controller }: { edge: GraphEdge; controller: Graph
   </form>;
 }
 export function GraphControlBar({ snapshot, controller }: { snapshot: GraphSnapshot; controller: GraphController }) {
+  const [collapsed, setCollapsed] = useState(false);
   const { graph, algorithm, stepIndex, playing, processing, selectedEdgeId, error } = snapshot;
   if (error) return <aside className="graph-controls panel graph-error" aria-label="Graph controls"><p>{error}</p><button onClick={controller.retry}>Retry recognition</button></aside>;
   if (!graph) return null;
@@ -29,7 +30,9 @@ export function GraphControlBar({ snapshot, controller }: { snapshot: GraphSnaps
   const result = stepIndex === last, value = stepIndex === 0 ? '—' : cost === 'INF' ? '∞' : cost;
   const metric = algorithm === 'dijkstra' ? result ? 'Shortest route' : 'Tentative cost' : algorithm === 'bfs' ? 'Fewest hops' : 'Traversal depth';
   return <aside className="graph-controls panel" aria-label="Graph controls" aria-busy={processing}>
-    <div className="graph-heading"><span>Network</span><span className={`graph-ready ${processing ? 'busy' : ''}`}>{processing ? 'Reading ink…' : 'Live ink'}</span></div>
+    <div className="graph-heading"><span>Network</span><span className={`graph-ready ${processing ? 'busy' : ''}`}>{processing ? 'Reading ink…' : 'Live ink'}</span>
+      <button aria-label={collapsed ? 'Expand graph controls' : 'Minimize graph controls'} aria-expanded={!collapsed} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</button></div>
+    {!collapsed ? <>
     <p className="graph-count">{graph.vertices.length} nodes · {graph.edges.length} connection{graph.edges.length === 1 ? '' : 's'}</p>
     <div className="algorithm-options" role="group" aria-label="Graph algorithm">
       {(['dijkstra', 'bfs', 'dfs'] as const).map((name) => <button key={name} aria-pressed={algorithm === name} disabled={processing}
@@ -59,6 +62,7 @@ export function GraphControlBar({ snapshot, controller }: { snapshot: GraphSnaps
         .map((e) => <option key={e.id} value={e.id}>{vertexLabel(e.sourceVertexId)} {e.directed ? '→' : '↔'} {vertexLabel(e.targetVertexId)} · {e.weight}</option>)}
     </select></div>
     {selectedEdge && !processing ? <WeightEditor key={`${selectedEdge.id}:${selectedEdge.weight}`} edge={selectedEdge} controller={controller} /> : null}
-    <p className="graph-hint">Use Select <kbd>V</kbd> to scrub a weight. Click a node to set the start; Shift-click to set the end.</p>
+    <p className="graph-hint">Drag a weight with Select <kbd>V</kbd>.</p>
+    </> : null}
   </aside>;
 }

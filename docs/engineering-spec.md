@@ -1,7 +1,7 @@
 # Inko — Computational Multiplayer Whiteboard with Semantic Zoom & Spatial Audio
 ## Master Engineering Specification for Autonomous Coding Agents (Codex / Claude Code)
 
-> Stack decision: React + TypeScript + Vite frontend; Python + FastAPI backend. The first implemented milestone is the drawing canvas and backend transport. See `README.md` for the current feature status and startup instructions; the sections below describe the full product roadmap.
+> Stack decision: React + TypeScript + Vite frontend; Python + FastAPI backend. Implemented milestones include the drawing canvas, backend transport, and worker-based executable graphs with editable weights. See `README.md` for current feature status and startup instructions; the sections below describe the full product roadmap.
 
 ---
 
@@ -364,15 +364,15 @@ For each connected remote peer:
 Execute the build in the following 5 phases and verify each checkpoint before proceeding:
 
 ### Phase 1: Project Scaffolding & Backend Multiplexer
-- [ ] Initialize `backend/` with FastAPI (`app/main.py`, `app/ws_multiplexer.py`, `app/storage.py`).
-- [ ] Implement `/ws/{room_id}` endpoint that accepts binary frames (`0x01` Yjs state updates persisted in room history + broadcast to peers, `0x02` 17-byte cursor frames broadcast immediately with zero copy, `0x03` WebRTC signaling relay).
-- [ ] Add `GET /api/rooms/{room_id}/stats` returning active peer count, stored Yjs update count, and uptime.
+- [x] Initialize `backend/` with FastAPI (`app/main.py`, `app/ws_multiplexer.py`, `app/storage.py`).
+- [x] Implement `/ws/{room_id}` endpoint that accepts binary frames (`0x01` Yjs state updates persisted in room history + broadcast to peers, `0x02` 17-byte cursor frames broadcast immediately with zero copy, `0x03` WebRTC signaling relay).
+- [x] Add `GET /api/rooms/{room_id}/stats` returning active peer count, stored Yjs update count, and uptime.
 - [ ] Initialize `frontend/` with Vite + React + TypeScript + TailwindCSS + `perfect-freehand`, `rbush`, `yjs`, `lucide-react`.
 
 ### Phase 2: 60–120 FPS Canvas Engine, R-Tree Culling, & Path2D Cache
-- [ ] Implement `Camera.ts`, `SpatialIndex.ts` (`rbush`), and `PathCache.ts` (`perfect-freehand` $\rightarrow$ `Path2D`).
+- [x] Implement `Camera.ts`, `SpatialIndex.ts` (`rbush`), and `PathCache.ts` (`perfect-freehand` $\rightarrow$ `Path2D`).
 - [ ] Implement `Renderer.ts` with infinite dot/grid background that adapts spacing across zoom octaves, active stroke rendering, remote peer cursor/laser rendering, and live HUD metrics.
-- [ ] Verify smooth panning (`Space + Drag` or middle/two-finger pan) and zoom-to-cursor (`Ctrl/Meta + Wheel` or pinch) from `0.05x` to `5.0x`.
+- [x] Verify smooth panning (`Space + Drag` or middle/two-finger pan) and zoom-to-cursor (`Ctrl/Meta + Wheel` or pinch) from `0.05x` to `5.0x`.
 
 ### Phase 3: Web Worker Active Ink Engine (Math Scrubbing + Executable Graphs)
 - [ ] Implement `heuristics.ts`, `DollarPRecognizer.ts`, `MathEngine.ts`, and `GraphEngine.ts` inside `src/worker/`.

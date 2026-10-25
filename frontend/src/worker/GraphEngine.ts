@@ -121,9 +121,10 @@ export function compileGraph(strokes: InkStroke[], settings: GraphSettings = {},
       .sort((a, b) => distance(a.midpoint, center) - distance(b.midpoint, center))[0];
     if (edge) { edge.weight = row.value; edge.weightBBox = row.box; edge.weightStrokeIds = row.strokes.map((s) => s.id); assigned.add(edge.id); }
   }
+  const strokeIds = new Set([...used, ...edges.flatMap((e) => e.weightStrokeIds)]);
   const graph: GraphASTNode = { kind: 'graph', id: 'graph:board', vertices, edges,
-    bbox: union(vertices.map((v) => v.bbox).concat(edges.map((e) => ({ minX: e.midpoint.x, maxX: e.midpoint.x, minY: e.midpoint.y, maxY: e.midpoint.y })))),
-    strokeIds: [...new Set([...used, ...edges.flatMap((e) => e.weightStrokeIds)])],
+    bbox: union(strokes.filter((s) => strokeIds.has(s.id)).map((s) => s.bbox)),
+    strokeIds: [...strokeIds],
     startVertexId: '', targetVertexId: '', steps: { bfs: [], dfs: [], dijkstra: [] } };
   return recomputeGraph(graph, settings);
 }

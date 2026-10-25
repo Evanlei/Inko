@@ -20,6 +20,8 @@ export class Renderer {
   private lastMetrics = 0;
   private metricsTimer = 0;
   private pendingMetrics: Metrics | null = null;
+  private warmGlow: CanvasGradient | null = null;
+  private coolGlow: CanvasGradient | null = null;
 
   constructor(readonly canvas: HTMLCanvasElement, readonly camera: Camera, readonly store: BoardStore, private onMetrics: (metrics: Metrics) => void) {
     const ctx = canvas.getContext('2d');
@@ -36,6 +38,10 @@ export class Renderer {
     this.dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(rect.width * this.dpr);
     this.canvas.height = Math.round(rect.height * this.dpr);
+    this.warmGlow = this.ctx.createRadialGradient(this.width * 0.87, 0, 0, this.width * 0.87, 0, this.width * 0.6);
+    this.warmGlow.addColorStop(0, '#e8c6ac27'); this.warmGlow.addColorStop(1, '#e8c6ac00');
+    this.coolGlow = this.ctx.createRadialGradient(0, this.height, 0, 0, this.height, this.width * 0.65);
+    this.coolGlow.addColorStop(0, '#b5d6e42c'); this.coolGlow.addColorStop(1, '#b5d6e400');
     this.invalidate();
   };
   invalidate = () => { if (!this.frame) this.frame = requestAnimationFrame(this.render); };
@@ -44,11 +50,11 @@ export class Renderer {
     let spacing = 24 * camera.zoom;
     while (spacing < 16) spacing *= 2;
     while (spacing > 40) spacing /= 2;
-    ctx.fillStyle = '#d8dcd2';
+    ctx.fillStyle = '#d3d8df';
     ctx.beginPath();
     for (let x = ((camera.x % spacing) + spacing) % spacing; x < this.width; x += spacing) {
       for (let y = ((camera.y % spacing) + spacing) % spacing; y < this.height; y += spacing) {
-        ctx.moveTo(x + 0.8, y); ctx.arc(x, y, 0.8, 0, Math.PI * 2);
+        ctx.moveTo(x + 0.55, y); ctx.arc(x, y, 0.55, 0, Math.PI * 2);
       }
     }
     ctx.fill();
@@ -56,29 +62,23 @@ export class Renderer {
   private welcome() {
     const ctx = this.ctx, x = this.width / 2 + (this.width < 650 ? 28 : 0), y = this.height / 2 - 32;
     const mobile = this.width < 650;
-    const fontSize = mobile ? Math.min(33, (this.width - 112) / 9.1) : 52;
     ctx.save();
-    // The empty-state artwork lives on the same canvas as the ink.
-    ctx.fillStyle = '#f7f7f2';
-    ctx.fillRect(x - Math.min(350, this.width / 2 - 28), y - 90, Math.min(700, this.width - 56), 205);
-    ctx.fillStyle = '#8b9384';
-    ctx.textAlign = 'center'; ctx.font = '500 11px ui-monospace, monospace';
-    ctx.fillText('AN OPEN SPACE FOR YOUR NEXT IDEA', x, y - 39);
-    ctx.fillStyle = '#303c35'; ctx.font = `${fontSize}px Georgia, serif`;
-    ctx.fillText('A little ink.', x, y + 17);
-    ctx.font = `italic ${fontSize}px Georgia, serif`;
-    ctx.fillText('Endless possibilities.', x, y + (mobile ? 58 : 78));
-    ctx.strokeStyle = '#b6cb77'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(x - 72, y + 27); ctx.quadraticCurveTo(x, y + 34, x + 76, y + 26); ctx.stroke();
-    ctx.fillStyle = '#7d8578'; ctx.font = '13px system-ui, sans-serif';
-    ctx.fillText('Pick up the pen. The canvas is yours.', x, y + (mobile ? 105 : 125));
+    ctx.textAlign = 'center'; ctx.fillStyle = '#747d88'; ctx.font = `300 ${mobile ? 29 : 40}px system-ui, sans-serif`;
+    ctx.fillText('Start with a line.', x, y);
+    ctx.fillStyle = '#a1a8b1'; ctx.font = `${mobile ? 11 : 12}px system-ui, sans-serif`;
+    if (mobile) {
+      ctx.fillText('Draw circles and connect them.', x, y + 33);
+      ctx.fillText('Or choose a workspace from Examples.', x, y + 52);
+    } else ctx.fillText('Draw circles, connect them, and find a way through.', x, y + 36);
     ctx.restore();
   }
   private render = (now: number) => {
     this.frame = 0;
     const start = performance.now(), ctx = this.ctx;
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    ctx.fillStyle = '#f7f7f2'; ctx.fillRect(0, 0, this.width, this.height);
+    ctx.fillStyle = '#f5f6f8'; ctx.fillRect(0, 0, this.width, this.height);
+    if (this.warmGlow) { ctx.fillStyle = this.warmGlow; ctx.fillRect(0, 0, this.width, this.height); }
+    if (this.coolGlow) { ctx.fillStyle = this.coolGlow; ctx.fillRect(0, 0, this.width, this.height); }
     this.grid();
     const ids = this.store.index.search(this.camera.viewport(this.width, this.height));
     const visible = ids.map((id) => this.store.strokes.get(id)!).sort((a, b) => a.createdAt - b.createdAt);
@@ -110,7 +110,7 @@ export class Renderer {
     const output = document.createElement('canvas');
     output.width = Math.max(1, Math.ceil(width * scale)); output.height = Math.max(1, Math.ceil(height * scale));
     const ctx = output.getContext('2d')!;
-    ctx.fillStyle = '#f7f7f2'; ctx.fillRect(0, 0, output.width, output.height);
+    ctx.fillStyle = '#f5f6f8'; ctx.fillRect(0, 0, output.width, output.height);
     ctx.scale(scale, scale); ctx.translate(padding - box.minX, padding - box.minY);
     for (const stroke of [...this.store.strokes.values()].sort((a, b) => a.createdAt - b.createdAt)) {
       ctx.fillStyle = stroke.color; ctx.fill(this.cache.get(stroke));

@@ -23,7 +23,7 @@ npm run dev
 
 Open **http://127.0.0.1:5173**. FastAPI runs on **http://127.0.0.1:8000**, with interactive API documentation at `/docs`. The Vite development server proxies `/api` and `/ws` to FastAPI.
 
-## First milestone
+## Implemented
 
 - Pressure-sensitive pen, five ink colors, and adjustable pen width.
 - Infinite panning, zoom anchored to the cursor, and touchscreen pinch gestures.
@@ -32,16 +32,30 @@ Open **http://127.0.0.1:5173**. FastAPI runs on **http://127.0.0.1:8000**, with 
 - A sample drawing and PNG export of the complete drawing, including offscreen ink.
 - One Canvas2D board with cached `perfect-freehand` geometry, `Path2D` rendering, and `rbush` viewport culling. The renderer sleeps when idle.
 - FastAPI binary room relay, SQLite update persistence, room statistics, and late-join replay.
+- Worker-based recognition of circles, connecting lines, single-stroke arrows, two-stroke arrows, and a small handwritten digit vocabulary.
+- Executable graph playback for BFS, DFS, and Dijkstra, with node distances, frontier highlights, and final routes drawn on the canvas.
+- Undoable connection-weight editing and live vertical scrubbing, including zero and decimal weights.
+- A seven-node, eleven-edge routing demo generated from real ink coordinates, plus a minimal interface with contextual, collapsible controls.
 
 The canvas currently saves **one workspace in this browser on this device**. Keep the same origin when reopening it: `localhost` and `127.0.0.1` have separate browser storage. Local saving failures are shown in the interface; PNG export remains available. Undo history lasts for the current session.
 
-The frontend is not connected to Yjs room synchronization yet. The sample drawing is raw ink. Handwriting recognition, executable graphs, reactive math, semantic zoom, and voice are later milestones in the [engineering specification](docs/engineering-spec.md).
+The frontend is not connected to Yjs room synchronization yet. General mathematical handwriting recognition, reactive math, semantic zoom, and voice are later milestones in the [engineering specification](docs/engineering-spec.md).
+
+## Explore a graph
+
+Choose **Examples → Routing graph**, then press **Play** to follow an algorithm or **Result** to see its final route. The default Dijkstra result is `A → B → E → F → G`, cost `11`. Choose BFS for the fewest-hop route or DFS for depth-first exploration. Start and end nodes are selectable, and an unreachable destination is shown explicitly.
+
+Loading an example replaces the canvas in one undoable edit. Undo returns to your previous drawing.
+
+To create your own graph, draw circles and connect their boundaries with lines or arrows. A line is undirected; an arrow is directed. Write a small number near the middle of a connection, or use **Connection** in the graph panel to enter its weight. Recognition uses geometric heuristics and $P digit templates; ambiguous ink may need correcting in that editor. Unweighted connections default to `1`.
+
+Use **Select (`V`)** to drag a weight vertically, click a node to set the start, or Shift-click a node to set the destination. Scrubbing updates the route through the worker and commits one undoable change on release. `Escape` cancels it. Weight edits support `0` to `1,000,000` with up to three decimal places and persist as ink across refreshes. Node labels, paths, and weights render inside the board canvas and are included in PNG exports.
 
 ## Controls
 
 | Action | Control |
 | --- | --- |
-| Pen / Eraser / Hand | `P` / `E` / `H` |
+| Select / Pen / Eraser / Hand | `V` / `P` / `E` / `H` |
 | Temporarily pan | Hold `Space` and drag, or middle-button drag |
 | Trackpad pan | Two-finger scroll |
 | Zoom at cursor | `Ctrl` or `⌘` + scroll |
@@ -61,7 +75,7 @@ npm exec --workspace frontend playwright install chromium
 npm run test:e2e
 ```
 
-Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, and browser-to-FastAPI transport.
+Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, browser-to-FastAPI transport, real pointer-to-graph recognition, traversal playback, weight edits and cancellation, stale worker results, and graph controls on phones.
 
 ## Backend contract
 

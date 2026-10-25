@@ -19,7 +19,7 @@ export interface CameraState { x: number; y: number; zoom: number }
 export interface BoardMeta { title: string; camera: CameraState }
 export interface BoardChange { added: InkStroke[]; removed: InkStroke[] }
 export interface BoardSnapshot { strokeCount: number; canUndo: boolean; canRedo: boolean }
-export const COLORS = ['#303c35', '#798c40', '#e69c4c', '#8174b6', '#c76c76'] as const;
+export const COLORS = ['#444b55', '#bb785c', '#75a1ad', '#8d91b3', '#9b9a8a'] as const;
 
 export function strokeBounds(points: StrokePoint[], size: number): BBox {
   const box = { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity };

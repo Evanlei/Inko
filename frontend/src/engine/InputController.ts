@@ -1,5 +1,5 @@
 import type { InkStroke, Point, Tool } from '../types/canvas';
-import { strokeBounds } from '../types/canvas';
+import { COLORS, strokeBounds } from '../types/canvas';
 import { Camera } from './Camera';
 import { BoardStore } from './BoardStore';
 import { Renderer } from './Renderer';
@@ -8,7 +8,7 @@ import type { GraphController } from './GraphController';
 type Gesture = { id: number; tool: Tool; last: Point; erased: InkStroke[]; stroke?: InkStroke };
 export class InputController {
   tool: Tool = 'pen';
-  color = '#303c35';
+  color: string = COLORS[0];
   size = 5;
   private gesture: Gesture | null = null;
   private pointers = new Map<number, Point>();

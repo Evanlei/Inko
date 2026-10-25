@@ -122,6 +122,7 @@ export class GraphController {
   }
   private hitWeight(point: Point, zoom: number) {
     return this.state.graph?.edges.find((e) => {
+      if (zoom < 0.5 && e.id !== this.state.selectedEdgeId) return false;
       const b = e.weightBBox, pad = 9 / zoom;
       return point.x >= b.minX - pad && point.x <= b.maxX + pad && point.y >= b.minY - pad && point.y <= b.maxY + pad;
     });

@@ -70,13 +70,13 @@ export class BoardSession {
   rename(title: string) { this.title = title.slice(0, 80); this.saveMeta(); }
   addSketch() {
     const center = this.camera.screenToWorld({ x: this.renderer.width / 2, y: this.renderer.height / 2 });
-    this.store.add(sampleSketch(center)); this.input.fit();
+    this.fitGraphNext = true;
+    this.store.replace([...this.store.strokes.values()], sampleSketch(center)); this.input.fit();
   }
   addGraphDemo() {
-    const bounds = this.store.bounds();
-    const center = bounds ? { x: bounds.maxX + 480, y: (bounds.minY + bounds.maxY) / 2 }
-      : this.camera.screenToWorld({ x: this.renderer.width / 2, y: this.renderer.height / 2 });
-    this.fitGraphNext = true; this.store.add(routingGraph(center));
+    const center = this.camera.screenToWorld({ x: this.renderer.width / 2, y: this.renderer.height / 2 });
+    this.fitGraphNext = true;
+    this.store.replace([...this.store.strokes.values()], routingGraph(center));
   }
   async export() {
     const blob = await this.renderer.exportPng(), url = URL.createObjectURL(blob);

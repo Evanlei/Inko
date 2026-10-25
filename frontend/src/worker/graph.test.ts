@@ -33,6 +33,11 @@ describe('geometry and handwritten digits', () => {
   });
 });
 describe('graph compilation and traces', () => {
+  it('includes bound numerical ink in the graph bounds even outside the node envelope', () => {
+    const graph = compileGraph([circle('a', 0), circle('b', 200), ink('ab', [{ x: 40, y: 0 }, { x: 160, y: 0 }]),
+      ...numberInk(3, { x: -200, y: -200 }, 'edge:ab')])!;
+    expect(graph.edges[0].weight).toBe(3); expect(graph.bbox.minX).toBeLessThan(-190); expect(graph.bbox.minY).toBeLessThan(-200);
+  });
   it('compiles the real demo ink into seven vertices and eleven directed weighted edges', () => {
     const graph = compileGraph(routingGraph({ x: 0, y: 0 }))!;
     expect(graph.vertices.map((v) => v.label)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
