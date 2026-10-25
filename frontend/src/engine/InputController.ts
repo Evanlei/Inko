@@ -3,6 +3,7 @@ import { strokeBounds } from '../types/canvas';
 import { Camera } from './Camera';
 import { BoardStore } from './BoardStore';
 import { Renderer } from './Renderer';
+import type { GraphController } from './GraphController';
 
 type Gesture = { id: number; tool: Tool; last: Point; erased: InkStroke[]; stroke?: InkStroke };
 export class InputController {
@@ -17,14 +18,14 @@ export class InputController {
   private events = new AbortController();
 
   constructor(private canvas: HTMLCanvasElement, private camera: Camera, private store: BoardStore, private renderer: Renderer,
-    private cameraChanged: () => void, private toolChanged: (tool: Tool) => void, private showHelp: () => void) {
+    private cameraChanged: () => void, private toolChanged: (tool: Tool) => void, private showHelp: () => void, private graph: GraphController) {
     const signal = this.events.signal;
     canvas.addEventListener('pointerdown', this.down, { signal });
     canvas.addEventListener('pointermove', this.move, { signal });
     canvas.addEventListener('pointerup', this.up, { signal });
     canvas.addEventListener('pointercancel', this.cancel, { signal });
     canvas.addEventListener('lostpointercapture', this.cancel, { signal });
-    canvas.addEventListener('pointerleave', () => { if (!this.gesture) { renderer.cursor = null; renderer.invalidate(); } }, { signal });
+    canvas.addEventListener('pointerleave', () => { if (!this.gesture) { renderer.cursor = null; graph.hoverEdgeId = null; renderer.invalidate(); } }, { signal });
     canvas.addEventListener('contextmenu', (event) => event.preventDefault(), { signal });
     canvas.addEventListener('wheel', this.wheel, { passive: false, signal });
     window.addEventListener('keydown', this.keydown, { signal });
@@ -33,6 +34,7 @@ export class InputController {
   }
   setTool(tool: Tool) {
     this.cancelGesture(); this.tool = tool;
+    if (tool !== 'select') this.graph.hoverEdgeId = null;
     if (this.renderer.cursor) this.renderer.cursor.tool = tool;
     this.updateCursor(); this.renderer.invalidate();
   }
@@ -41,7 +43,7 @@ export class InputController {
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
   private updateCursor() {
-    this.canvas.style.cursor = this.space || this.tool === 'hand' ? (this.gesture ? 'grabbing' : 'grab') : this.tool === 'eraser' ? 'none' : 'crosshair';
+    this.canvas.style.cursor = this.space || this.tool === 'hand' ? (this.gesture ? 'grabbing' : 'grab') : this.tool === 'eraser' ? 'none' : this.tool === 'select' ? 'default' : 'crosshair';
   }
   private point(event: PointerEvent) {
     return { ...this.camera.screenToWorld(this.position(event)), pressure: event.pointerType === 'pen' ? Math.max(0.05, event.pressure) : 0.5, t: event.timeStamp };
@@ -74,6 +76,8 @@ export class InputController {
     } else if (tool === 'eraser') {
       const world = this.camera.screenToWorld(pos);
       gesture.erased.push(...this.store.eraseBetween(world, world, 14 / this.camera.zoom));
+    } else if (tool === 'select') {
+      this.graph.pointerDown(pos, this.camera.screenToWorld(pos), this.camera.zoom, event.shiftKey);
     }
     this.updateCursor(); this.renderer.invalidate();
   };
@@ -100,9 +104,12 @@ export class InputController {
         }
       } else if (gesture.tool === 'eraser') {
         gesture.erased.push(...this.store.eraseBetween(this.camera.screenToWorld(gesture.last), this.camera.screenToWorld(pos), 14 / this.camera.zoom));
+      } else if (gesture.tool === 'select') {
+        this.graph.pointerMove(pos);
       }
       gesture.last = pos;
     }
+    if (this.tool === 'select') this.canvas.style.cursor = this.graph.hover(this.camera.screenToWorld(pos), this.camera.zoom) ? 'ns-resize' : 'default';
     if (gesture || this.tool === 'eraser') this.renderer.invalidate();
   };
   private up = (event: PointerEvent) => {
@@ -114,6 +121,7 @@ export class InputController {
         gesture.stroke.bbox = strokeBounds(gesture.stroke.points, gesture.stroke.size);
         this.store.add([gesture.stroke]);
       } else if (gesture.tool === 'eraser') this.store.finishErase(gesture.erased);
+      else if (gesture.tool === 'select') this.graph.pointerUp();
       this.renderer.activeStroke = null;
     }
     this.pointers.delete(event.pointerId);
@@ -129,6 +137,7 @@ export class InputController {
     if (!this.pointers.size) this.touchSuppressed = false;
   };
   private cancelGesture() {
+    if (this.gesture?.tool === 'select') this.graph.pointerUp(true);
     if (this.gesture?.erased.length) this.store.cancelErase(this.gesture.erased);
     this.gesture = null; this.renderer.activeStroke = null;
     this.updateCursor(); this.renderer.invalidate();
@@ -154,8 +163,8 @@ export class InputController {
       event.preventDefault(); this.cancelGesture();
       if (key === 'y' || event.shiftKey) this.store.redo(); else this.store.undo();
     } else if (!mod && !event.altKey) {
-      if (key === 'p' || key === 'e' || key === 'h') {
-        const tool = key === 'p' ? 'pen' : key === 'e' ? 'eraser' : 'hand';
+      if (key === 'p' || key === 'e' || key === 'h' || key === 'v') {
+        const tool = key === 'p' ? 'pen' : key === 'e' ? 'eraser' : key === 'v' ? 'select' : 'hand';
         this.setTool(tool); this.toolChanged(tool);
       } else if (key === '+' || key === '=') { event.preventDefault(); this.zoom(1.25); }
       else if (key === '-') { event.preventDefault(); this.zoom(0.8); }
@@ -169,7 +178,10 @@ export class InputController {
   zoom(factor: number) { this.camera.zoomAt(this.center(), this.camera.zoom * factor); this.cameraChanged(); this.renderer.invalidate(); }
   fit() {
     const bounds = this.store.bounds();
-    if (bounds) this.camera.fit(bounds, this.renderer.width, this.renderer.height);
+    const hasGraph = this.renderer.overlay.visible;
+    const width = this.renderer.width - (hasGraph && this.renderer.width >= 1000 ? 350 : 0);
+    const height = this.renderer.height - (hasGraph && this.renderer.width < 1000 ? 260 : 0);
+    if (bounds) this.camera.fit(bounds, width, height);
     else this.camera.restore({ x: 0, y: 0, zoom: 1 });
     this.cameraChanged(); this.renderer.invalidate();
   }

@@ -29,6 +29,13 @@ describe('camera transforms', () => {
   });
 });
 describe('editing history and spatial index', () => {
+  it('replaces weight ink as one atomic edit and preserves both versions through undo/redo', () => {
+    const board = new BoardStore(), old = line('weight-4'), next = line('weight-20', 20);
+    board.add([old]); board.replace([old], [next]);
+    expect([...board.strokes.keys()]).toEqual(['weight-20']);
+    board.undo(); expect([...board.strokes.keys()]).toEqual(['weight-4']);
+    board.redo(); expect([...board.strokes.keys()]).toEqual(['weight-20']);
+  });
   it('replaces the spatial index and editing history when hydrating a document', () => {
     const board = new BoardStore(); board.add([line('old')]); board.hydrate([line('new', 200)]);
     expect(board.index.search({ minX: -200, minY: -200, maxX: 200, maxY: 400 })).toEqual(['new']);

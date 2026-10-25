@@ -22,7 +22,7 @@ export class Camera {
     return { minX: start.x, minY: start.y, maxX: end.x, maxY: end.y };
   }
   fit(box: BBox, width: number, height: number) {
-    const margin = width < 600 ? 110 : 180;
+    const margin = width < 600 ? 70 : width < 1000 ? 100 : 150;
     this.zoom = Math.max(0.05, Math.min(2, (width - margin * 2) / Math.max(1, box.maxX - box.minX), (height - 240) / Math.max(1, box.maxY - box.minY)));
     this.x = width / 2 - (box.minX + box.maxX) / 2 * this.zoom;
     this.y = height / 2 - (box.minY + box.maxY) / 2 * this.zoom;

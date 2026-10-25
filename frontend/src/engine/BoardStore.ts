@@ -43,6 +43,11 @@ export class BoardStore {
     strokes.forEach((stroke) => this.insert(stroke));
     this.record({ added: strokes, removed: [] });
   }
+  replace(removed: InkStroke[], added: InkStroke[]) {
+    removed.forEach((stroke) => this.remove(stroke));
+    added.forEach((stroke) => this.insert(stroke));
+    this.record({ added, removed });
+  }
   eraseBetween(a: Point, b: Point, radius: number): InkStroke[] {
     const box = { minX: Math.min(a.x, b.x) - radius, minY: Math.min(a.y, b.y) - radius, maxX: Math.max(a.x, b.x) + radius, maxY: Math.max(a.y, b.y) + radius };
     const removed: InkStroke[] = [];

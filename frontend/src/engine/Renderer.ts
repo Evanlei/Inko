@@ -1,11 +1,14 @@
 import { Camera } from './Camera';
 import { BoardStore } from './BoardStore';
 import { PathCache } from './PathCache';
+import { GraphOverlay } from './GraphOverlay';
 import type { InkStroke, Point, Tool } from '../types/canvas';
 
 export interface Metrics { visible: number; total: number; paintMs: number }
 export class Renderer {
   readonly cache = new PathCache();
+  readonly overlay = new GraphOverlay();
+  syncGraphInteraction = () => {};
   activeStroke: InkStroke | null = null;
   cursor: (Point & { tool: Tool }) | null = null;
   width = 0;
@@ -83,6 +86,7 @@ export class Renderer {
     ctx.translate(this.camera.x, this.camera.y); ctx.scale(this.camera.zoom, this.camera.zoom);
     for (const stroke of visible) { ctx.fillStyle = stroke.color; ctx.fill(this.cache.get(stroke)); }
     if (this.activeStroke) { ctx.fillStyle = this.activeStroke.color; ctx.fill(this.cache.preview(this.activeStroke)); }
+    this.syncGraphInteraction(); this.overlay.draw(ctx, this.camera.zoom, now);
     ctx.restore();
     if (!this.store.strokes.size && !this.activeStroke) this.welcome();
     if (this.cursor?.tool === 'eraser') {
@@ -92,6 +96,7 @@ export class Renderer {
     this.pendingMetrics = { visible: visible.length, total: this.store.strokes.size, paintMs: performance.now() - start };
     if (now - this.lastMetrics > 200) this.publishMetrics();
     else if (!this.metricsTimer) this.metricsTimer = window.setTimeout(this.publishMetrics, 200);
+    if (this.overlay.animating) this.invalidate();
   };
   private publishMetrics = () => {
     window.clearTimeout(this.metricsTimer); this.metricsTimer = 0; this.lastMetrics = performance.now();
@@ -110,6 +115,7 @@ export class Renderer {
     for (const stroke of [...this.store.strokes.values()].sort((a, b) => a.createdAt - b.createdAt)) {
       ctx.fillStyle = stroke.color; ctx.fill(this.cache.get(stroke));
     }
+    this.overlay.draw(ctx, scale, performance.now());
     return new Promise((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not export the drawing.')), 'image/png'));
   }
   dispose() {

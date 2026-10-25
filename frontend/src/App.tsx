@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowDownToLine, Check, CircleHelp, LoaderCircle, Maximize, Minus, Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
+import { ArrowDownToLine, Check, CircleHelp, LoaderCircle, Maximize, Minus, Network, Plus, Sparkles, Trash2, TriangleAlert } from 'lucide-react';
 import { BoardSession } from './engine/BoardSession';
 import type { Metrics } from './engine/Renderer';
 import type { SaveStatus } from './storage/BoardPersistence';
 import type { BoardSnapshot, Tool } from './types/canvas';
 import { ToolbarHUD } from './components/ToolbarHUD';
 import { KeyboardHelp } from './components/KeyboardHelp';
+import { GraphControlBar } from './components/GraphControlBar';
+import { EMPTY_GRAPH } from './types/graph';
 
 const empty: BoardSnapshot = { strokeCount: 0, canUndo: false, canRedo: false };
 const emptySnapshot = () => empty;
+const emptyGraphSnapshot = () => EMPTY_GRAPH;
 const emptySubscribe = () => () => {};
 export function App() {
   const canvas = useRef<HTMLCanvasElement>(null), help = useRef<HTMLDialogElement>(null);
@@ -18,6 +21,7 @@ export function App() {
   const [zoom, setZoom] = useState(1), [error, setError] = useState('');
   const [metrics, setMetrics] = useState<Metrics>({ total: 0, visible: 0, paintMs: 0 });
   const snapshot = useSyncExternalStore(board?.store.subscribe ?? emptySubscribe, board?.store.getSnapshot ?? emptySnapshot);
+  const graph = useSyncExternalStore(board?.graph.subscribe ?? emptySubscribe, board?.graph.getSnapshot ?? emptyGraphSnapshot);
   const showHelp = useCallback(() => { if (!help.current?.open) help.current?.showModal(); }, []);
   useEffect(() => {
     let disposed = false, session: BoardSession | null = null;
@@ -49,11 +53,13 @@ export function App() {
           {save === 'saved' ? <Check size={14} /> : save === 'error' ? <TriangleAlert size={14} /> : <LoaderCircle size={14} className="spin" />}<span>{saveLabel}</span>
         </span>
         <button className="sketch-button" disabled={!board} onClick={() => board?.addSketch()}><Sparkles size={15} /><span>Try a sketch</span></button>
+        <button className="sketch-button" disabled={!board || graph.processing} onClick={() => board?.addGraphDemo()}><Network size={15} /><span>Routing graph</span></button>
         <button className="export-button" disabled={!board || !snapshot.strokeCount} onClick={() => { board?.export().catch((reason: Error) => setError(reason.message)); }}><ArrowDownToLine size={16} /><span>Export PNG</span></button>
       </div>
     </header>
     <ToolbarHUD tool={tool} color={color} size={size} disabled={!board} canUndo={snapshot.canUndo} canRedo={snapshot.canRedo}
       onTool={chooseTool} onColor={chooseColor} onSize={chooseSize} undo={() => board?.store.undo()} redo={() => board?.store.redo()} />
+    {board ? <GraphControlBar snapshot={graph} controller={board.graph} /> : null}
     <aside className="canvas-note"><span className="note-line" /><span>A space to make<br /><em>something of an idea.</em></span></aside>
     <div className="zoom-controls panel" aria-label="Canvas view">
       <button className="icon-button" aria-label="Zoom out" disabled={!board || zoom <= 0.05} onClick={() => board?.input.zoom(0.8)}><Minus size={16} /></button>

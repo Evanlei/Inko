@@ -1,8 +1,9 @@
-import { Eraser, Hand, PenLine, Redo2, Undo2 } from 'lucide-react';
+import { Eraser, Hand, MousePointer2, PenLine, Redo2, Undo2 } from 'lucide-react';
 import { COLORS } from '../types/canvas';
 import type { Tool } from '../types/canvas';
 
 const tools = [
+  { id: 'select', label: 'Select', key: 'V', icon: MousePointer2 },
   { id: 'pen', label: 'Pen', key: 'P', icon: PenLine },
   { id: 'eraser', label: 'Eraser', key: 'E', icon: Eraser },
   { id: 'hand', label: 'Hand', key: 'H', icon: Hand },

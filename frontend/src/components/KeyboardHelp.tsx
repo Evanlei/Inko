@@ -8,7 +8,9 @@ export function KeyboardHelp({ dialogRef }: { dialogRef: RefObject<HTMLDialogEle
     <h2 id="help-title">A few little shortcuts.</h2>
     <p>Less clicking. More thinking.</p>
     <dl className="shortcuts">
-      <div><dt>Pen / Eraser / Hand</dt><dd><kbd>P</kbd><kbd>E</kbd><kbd>H</kbd></dd></div>
+      <div><dt>Select / Pen / Eraser / Hand</dt><dd><kbd>V</kbd><kbd>P</kbd><kbd>E</kbd><kbd>H</kbd></dd></div>
+      <div><dt>Scrub an edge weight</dt><dd>Select, then drag vertically</dd></div>
+      <div><dt>Set start / end node</dt><dd>Select + click / Shift-click</dd></div>
       <div><dt>Temporarily pan</dt><dd><kbd>Space</kbd> + drag</dd></div>
       <div><dt>Pan the canvas</dt><dd>Scroll / two-finger drag</dd></div>
       <div><dt>Zoom at your cursor</dt><dd><kbd>Ctrl</kbd> / <kbd>⌘</kbd> + scroll</dd></div>
