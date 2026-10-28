@@ -37,16 +37,27 @@ Open **http://127.0.0.1:5173**. FastAPI runs on **http://127.0.0.1:8000**, with 
 - Undoable connection-weight editing and live vertical scrubbing, including zero and decimal weights.
 - A seven-node, eleven-edge routing demo generated from real ink coordinates, plus a minimal interface with contextual, collapsible controls.
 - Semantic zoom with worker-based bounding-box DBSCAN, incrementally maintained spatial indexing and neighborhood caches, and canvas summaries for graphs and nearby freehand notes.
+- Reactive math: spatially ordered variable definitions, computed results, 200-sample function plots, undoable literal scrubbing, an equation editor, and an oscillator demo. Equations, results, plots, and overview sparklines render on the same canvas.
 
 The canvas currently saves **one workspace in this browser on this device**. Keep the same origin when reopening it: `localhost` and `127.0.0.1` have separate browser storage. Local saving failures are shown in the interface; PNG export remains available. Undo history lasts for the current session.
 
-The frontend is not connected to Yjs room synchronization yet. General mathematical handwriting recognition, reactive math, and voice are later milestones in the [engineering specification](docs/engineering-spec.md).
+The frontend is not connected to Yjs room synchronization yet. General mathematical handwriting recognition and voice remain later milestones in the [engineering specification](docs/engineering-spec.md).
+
+## Explore live math
+
+Choose **Examples → Oscillator lab**. The workspace contains `k = 4.0`, `c = 0.35`, `w = sqrt(k)`, and `y(x) = exp(-c*x) * cos(k*x)`. Set `k` to `9` to see `w` become `3` and the oscillator curve change. Use **Select (`V`)** to drag a numeric assignment vertically, or select an equation in **Live math** and use **Variable value**. A drag previews changes through the worker; release commits one undoable ink replacement, and `Escape` cancels it. Literal editing supports signed values from `-1,000,000` to `1,000,000`, rounded to three decimal places.
+
+Use the **ƒ / Add equation** button to add your own equation, or **Update equation** to change an existing one. Typed equations become actual stroke paths with explicit symbol tokens; they use the same worker compiler as the demo and recognized handwriting. Handwriting recognition is a small template vocabulary (digits, `k m c w a b x y`, and basic arithmetic symbols), not general OCR. For reliable entry of longer formulas and function names, use the equation editor. You can erase equation strokes normally; derived results and plots are recomputed from the remaining ink.
+
+The parser supports `+ - * / ^`, parentheses, decimal/scientific notation, `pi`, `e`, and `sin`, `cos`, `tan`, `exp`, `sqrt`, `log`, `abs`, `min`, and `max`. Use explicit `*` for multiplication and lowercase names. Assignments resolve top-to-bottom, then left-to-right in 40-unit rows; define variables and functions before using them. Functions capture the definitions above them and sample 200 points on `[0, 10]`, with an automatic vertical range. Undefined samples leave gaps. Forward references, cycles, unsupported syntax, and invalid calculations show equation errors; drawing continues to work. Units, symbolic algebra, custom plot domains, and general handwriting recognition are not implemented.
+
+Plots and computed results are included in **Fit drawing** and PNG exports. Zooming out shows a math summary and curve preview. When math and graphs share a board, **Network / Math** switches the contextual controls.
 
 ## Zoom out to explore
 
 Between 38% and 18% zoom, nearby strokes cross-fade into workspace summaries. Graph summaries show node and connection counts, a small topology preview, and the current Dijkstra shortest-path cost between the selected endpoints. Separate groups of freehand strokes get their own summaries; isolated strokes remain visible. Summary content is derived in the worker and never replaces saved ink or undo history.
 
-Click or tap a summary to explore that workspace at a readable zoom. Drag across a summary to pan. Use **Fit drawing (`0`)** for the full board or **100% (`1`)** for full ink detail; fitting a large board on a phone may still show an overview. Graph controls collapse at 18% zoom and can be expanded when needed. PNG export always includes the full drawing and graph annotations, regardless of the current overview zoom. Math summaries will follow the math engine milestone.
+Click or tap a summary to explore that workspace at a readable zoom. Drag across a summary to pan. Use **Fit drawing (`0`)** for the full board or **100% (`1`)** for full ink detail; fitting a large board on a phone may still show an overview. Graph and math controls collapse at 18% zoom and can be expanded when needed. PNG export always includes the full drawing, computation results, plots, and graph annotations, regardless of the current overview zoom.
 
 ## Explore a graph
 
@@ -82,7 +93,7 @@ npm exec --workspace frontend playwright install chromium
 npm run test:e2e
 ```
 
-Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, browser-to-FastAPI transport, real pointer-to-graph recognition, traversal playback, weight edits and cancellation, stale worker results, graph controls on phones, and live semantic summaries and navigation.
+Browser tests start the frontend and backend automatically when their ports are free. They cover drawing pixels, undo/redo, persistence after reload, pan/zoom, erasing, PNG export, mobile layout, touch gestures, browser-to-FastAPI transport, real pointer-to-graph recognition, traversal playback, weight edits and cancellation, stale worker results, graph controls on phones, live semantic summaries and navigation, math dependencies and plots, real pointer-to-math recognition, scrub cancellation, and mixed math/graph workspaces.
 
 ## Backend contract
 

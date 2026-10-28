@@ -9,6 +9,7 @@ import { InputController } from './InputController';
 import { sampleSketch } from '../presets/sketch';
 import { routingGraph } from '../presets/demoWorkspaces';
 import { GraphController } from './GraphController';
+import { expressionInk, oscillatorLab } from '../presets/mathInk';
 
 interface Callbacks {
   save: (status: SaveStatus) => void;
@@ -35,12 +36,14 @@ export class BoardSession {
     this.renderer = new Renderer(canvas, this.camera, this.store, callbacks.metrics);
     initial.strokes.forEach((stroke) => this.renderer.cache.get(stroke));
     this.graph = new GraphController(this.store, (snapshot) => {
-      this.renderer.overlay.set(snapshot); this.renderer.semantic.set(snapshot.clusters); this.renderer.invalidate();
+      this.renderer.overlay.set(snapshot); this.renderer.math.set(snapshot.math); this.renderer.semantic.set(snapshot.clusters); this.renderer.invalidate();
       if (this.fitGraphNext && !snapshot.processing) { this.fitGraphNext = false; this.input.fit(); }
     }, this.renderer.invalidate);
     this.renderer.syncGraphInteraction = () => {
       this.renderer.overlay.hoveredEdgeId = this.graph.hoverEdgeId;
       this.renderer.overlay.preview = this.graph.weightPreview;
+      this.renderer.math.hoveredId = this.graph.hoverMathId;
+      this.renderer.math.preview = this.graph.mathPreview;
     };
     this.input = new InputController(canvas, this.camera, this.store, this.renderer, () => {
       callbacks.camera(this.camera.zoom);
@@ -77,6 +80,18 @@ export class BoardSession {
     const center = this.camera.screenToWorld({ x: this.renderer.width / 2, y: this.renderer.height / 2 });
     this.fitGraphNext = true;
     this.store.replace([...this.store.strokes.values()], routingGraph(center));
+  }
+  addMathDemo() {
+    const center = this.camera.screenToWorld({ x: this.renderer.width / 2, y: this.renderer.height / 2 });
+    this.fitGraphNext = true;
+    this.store.replace([...this.store.strokes.values()], oscillatorLab(center));
+  }
+  addEquation(text: string) {
+    const math = this.graph.getSnapshot().math;
+    const origin = math.length ? { x: math[0].bbox.minX + 2, y: Math.max(...math.map((n) => n.bbox.maxY)) + 45 }
+      : this.camera.screenToWorld({ x: this.renderer.width * 0.25, y: this.renderer.height * 0.3 });
+    this.fitGraphNext = true;
+    this.store.add(expressionInk(text, origin));
   }
   async export() {
     const blob = await this.renderer.exportPng(), url = URL.createObjectURL(blob);

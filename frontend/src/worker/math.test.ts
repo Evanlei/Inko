@@ -65,10 +65,10 @@ describe('spatial math compilation', () => {
     expect(compile(strokes)[1].numericValue).toBe(2);
     expect(compile([])).toEqual([]);
   });
-  it('recognizes a simple handwritten assignment without seeded tokens', () => {
-    const strokes = ink(['k=4']).map((s) => ({ ...s, semanticRole: 'raw' as const, mathLineId: undefined, mathTokenIndex: undefined, recognizedToken: undefined }));
+  it.each(['k=4', 'k=4.5'])('recognizes handwritten %s without seeded tokens', (text) => {
+    const strokes = ink([text]).map((s) => ({ ...s, semanticRole: 'raw' as const, mathLineId: undefined, mathTokenIndex: undefined, recognizedToken: undefined }));
     const nodes = compile(strokes);
-    expect(nodes).toHaveLength(1); expect(nodes[0].rawExpression).toBe('k=4'); expect(nodes[0].numericValue).toBe(4);
+    expect(nodes).toHaveLength(1); expect(nodes[0].rawExpression).toBe(text); expect(nodes[0].numericValue).toBe(Number(text.slice(2)));
     expect(nodes[0].scrubTarget).toBeDefined();
   });
 });

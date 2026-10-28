@@ -25,7 +25,7 @@ export class InputController {
     canvas.addEventListener('pointerup', this.up, { signal });
     canvas.addEventListener('pointercancel', this.cancel, { signal });
     canvas.addEventListener('lostpointercapture', this.cancel, { signal });
-    canvas.addEventListener('pointerleave', () => { if (!this.gesture) { renderer.cursor = null; graph.hoverEdgeId = null; renderer.invalidate(); } }, { signal });
+    canvas.addEventListener('pointerleave', () => { if (!this.gesture) { renderer.cursor = null; graph.hoverEdgeId = null; graph.hoverMathId = null; renderer.invalidate(); } }, { signal });
     canvas.addEventListener('contextmenu', (event) => event.preventDefault(), { signal });
     canvas.addEventListener('wheel', this.wheel, { passive: false, signal });
     window.addEventListener('keydown', this.keydown, { signal });
@@ -34,7 +34,7 @@ export class InputController {
   }
   setTool(tool: Tool) {
     this.cancelGesture(); this.tool = tool;
-    if (tool !== 'select') this.graph.hoverEdgeId = null;
+    if (tool !== 'select') { this.graph.hoverEdgeId = null; this.graph.hoverMathId = null; }
     if (this.renderer.cursor) this.renderer.cursor.tool = tool;
     this.updateCursor(); this.renderer.invalidate();
   }
@@ -190,12 +190,12 @@ export class InputController {
   private center() { return { x: this.renderer.width / 2, y: this.renderer.height / 2 }; }
   zoom(factor: number) { this.camera.zoomAt(this.center(), this.camera.zoom * factor); this.cameraChanged(); this.renderer.invalidate(); }
   fit() {
-    const bounds = this.store.bounds();
+    const bounds = this.renderer.contentBounds();
     if (bounds) this.fitBounds(bounds);
     else { this.camera.restore({ x: 0, y: 0, zoom: 1 }); this.cameraChanged(); this.renderer.invalidate(); }
   }
   private fitBounds(bounds: BBox) {
-    const hasGraph = this.renderer.overlay.visible;
+    const hasGraph = this.renderer.overlay.visible || this.renderer.math.visible;
     const width = this.renderer.width - (hasGraph && this.renderer.width >= 1000 ? 350 : 0);
     const height = this.renderer.height - (hasGraph && this.renderer.width < 1000 ? 260 : 0);
     this.camera.fit(bounds, width, height);

@@ -1,7 +1,7 @@
 # Inko — Computational Multiplayer Whiteboard with Semantic Zoom & Spatial Audio
 ## Master Engineering Specification for Autonomous Coding Agents (Codex / Claude Code)
 
-> Stack decision: React + TypeScript + Vite frontend; Python + FastAPI backend. Implemented milestones include the drawing canvas, backend transport, and worker-based executable graphs with editable weights. See `README.md` for current feature status and startup instructions; the sections below describe the full product roadmap.
+> Stack decision: React + TypeScript + Vite frontend; Python + FastAPI backend. Implemented milestones include the drawing canvas, backend transport, executable graphs, semantic zoom, and reactive math with editable variables and inline plots. See `README.md` for current feature status and startup instructions; the sections below describe the full product roadmap.
 
 ---
 
@@ -375,16 +375,16 @@ Execute the build in the following 5 phases and verify each checkpoint before pr
 - [x] Verify smooth panning (`Space + Drag` or middle/two-finger pan) and zoom-to-cursor (`Ctrl/Meta + Wheel` or pinch) from `0.05x` to `5.0x`.
 
 ### Phase 3: Web Worker Active Ink Engine (Math Scrubbing + Executable Graphs)
-- [ ] Implement `heuristics.ts`, `DollarPRecognizer.ts`, `MathEngine.ts`, and `GraphEngine.ts` inside `src/worker/`.
-- [ ] Wire `InputController.ts` so hovering over a variable assignment RHS (`k = 4.0`) or graph edge weight shows a scrub handle (`↕`), and dragging vertically mutates the stroke value and re-evaluates the AST at 60 FPS.
-- [ ] Implement inline 2D function plot rendering on the canvas for functions of `x` (`y(x) = ...`) and interactive BFS / DFS / Dijkstra step-by-step animated playback over hand-drawn graphs.
+- [x] Implement `heuristics.ts`, `DollarPRecognizer.ts`, `MathEngine.ts`, and `GraphEngine.ts` inside `src/worker/`. (Template handwriting vocabulary; seeded and typed formulas support the full implemented expression grammar.)
+- [ ] Wire `InputController.ts` so hovering over a variable assignment RHS (`k = 4.0`) or graph edge weight shows a scrub handle (`↕`), and dragging vertically mutates the stroke value and re-evaluates the AST at 60 FPS. (Functionally implemented with frame-coalesced worker previews and atomic undo; sustained 60 FPS math scrubbing has not been benchmarked.)
+- [x] Implement inline 2D function plot rendering on the canvas for functions of `x` (`y(x) = ...`) and interactive BFS / DFS / Dijkstra step-by-step animated playback over hand-drawn graphs.
 
 ### Phase 4: DBSCAN Clustering, Semantic LoD Zoom, & Spatial Audio
 - [x] Implement `dbscan.ts` using `rbush` bounding-box range queries.
-- [ ] Implement the smooth `0.18x – 0.38x` LoD cross-fade in `Renderer.ts` so zooming out collapses math derivations and graphs into high-contrast Semantic Summary Cards with sparklines and live metrics. (Graph and freehand summaries implemented; math summaries await the math engine.)
+- [x] Implement the smooth `0.18x – 0.38x` LoD cross-fade in `Renderer.ts` so zooming out collapses math derivations and graphs into high-contrast Semantic Summary Cards with sparklines and live metrics.
 - [ ] Implement `BinaryProtocol.ts`, `SyncEngine.ts`, and `SpatialAudio.ts` (including a `"Simulate Peer Cursor & Spatial Audio Orbit"` toggle in the HUD so a single user can watch a simulated collaborator orbit the board while hearing live Web Audio stereo panning and low-pass distance attenuation).
 
 ### Phase 5: One-Click Demo Presets & Verification
-- [ ] Implement `src/presets/demoWorkspaces.ts` generating realistic freehand stroke arrays for the **Damped Harmonic Oscillator Lab** and **Weighted Network Routing Graph** side-by-side on the infinite canvas.
+- [ ] Implement `src/presets/demoWorkspaces.ts` generating realistic freehand stroke arrays for the **Damped Harmonic Oscillator Lab** and **Weighted Network Routing Graph** side-by-side on the infinite canvas. (Both demos are available individually; combined side-by-side showcase remains upcoming.)
 - [ ] Auto-load the showcase workspace on initial startup if the room is empty so opening `http://localhost:5173` immediately presents an interactive, recruiter-ready computational canvas.
 - [ ] Run `npm run build` and `pytest` to verify zero TypeScript compilation errors or runtime issues.

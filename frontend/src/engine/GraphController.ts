@@ -3,6 +3,8 @@ import type { Algorithm, GraphEdge, GraphSettings, GraphSnapshot } from '../type
 import { EMPTY_GRAPH } from '../types/graph';
 import type { InkWorkerRequest, InkWorkerResponse } from '../types/workerMessages';
 import { numberInk } from '../presets/digits';
+import { expressionInk } from '../presets/mathInk';
+import type { MathASTNode } from '../types/math';
 import { BoardStore } from './BoardStore';
 
 function segmentDistance(p: Point, a: Point, b: Point) {
@@ -21,11 +23,13 @@ export class GraphController {
   private previewFrame = 0;
   private settings: GraphSettings = {};
   private scrub: { edge: GraphEdge; startY: number; value: number } | null = null;
+  private mathScrub: { node: MathASTNode; startY: number; value: number } | null = null;
   private showResult = false;
   private weightCommit = false;
   private unsubscribe: () => void;
   private events = new AbortController();
   hoverEdgeId: string | null = null;
+  hoverMathId: string | null = null;
 
   constructor(private store: BoardStore, private update: (snapshot: GraphSnapshot) => void, private invalidate: () => void) {
     this.unsubscribe = store.subscribe(this.changed);
@@ -46,16 +50,16 @@ export class GraphController {
       this.worker.onmessage = (event: MessageEvent<InkWorkerResponse>) => {
         const response = event.data;
         if (response.revision !== this.revision) return;
-        if (response.type === 'error') { this.emit({ clusters: [], processing: false, error: response.message, playing: false }); return; }
+        if (response.type === 'error') { this.emit({ math: [], clusters: [], processing: false, error: response.message, playing: false }); return; }
         const graph = response.graph;
         if (graph) this.settings = { startVertexId: graph.startVertexId, targetVertexId: graph.targetVertexId };
         const selectedEdgeId = graph?.edges.some((e) => e.id === this.state.selectedEdgeId) ? this.state.selectedEdgeId : null;
         const stepIndex = graph && this.showResult ? graph.steps[this.state.algorithm].length - 1 : 0;
-        this.emit({ graph, clusters: response.clusters, stepIndex, selectedEdgeId, processing: false, error: null, workerMs: response.elapsedMs });
+        this.emit({ graph, math: response.math, clusters: response.clusters, stepIndex, selectedEdgeId, processing: false, error: null, workerMs: response.elapsedMs });
       };
       this.worker.onerror = (event) => {
         event.preventDefault(); this.worker?.terminate(); this.worker = null; this.pause();
-        this.emit({ graph: null, clusters: [], processing: false, error: 'Ink analysis could not start. Drawing is still available.' });
+        this.emit({ graph: null, math: [], clusters: [], processing: false, error: 'Ink analysis could not start. Drawing is still available.' });
       };
       this.flush();
     } catch {
@@ -67,9 +71,9 @@ export class GraphController {
   }
   private changed = (change: BoardChange) => {
     this.pause(); this.showResult = this.weightCommit;
-    window.cancelAnimationFrame(this.previewFrame); this.previewFrame = 0; this.scrub = null;
+    window.cancelAnimationFrame(this.previewFrame); this.previewFrame = 0; this.scrub = null; this.mathScrub = null; this.hoverMathId = null;
     change.removed.forEach((s) => this.pending.set(s.id, null)); change.added.forEach((s) => this.pending.set(s.id, s));
-    this.revision++; this.emit({ clusters: [], processing: !!this.worker, stepIndex: 0,
+    this.revision++; this.emit({ math: [], clusters: [], processing: !!this.worker, stepIndex: 0,
       ...(!this.store.strokes.size ? { graph: null, selectedEdgeId: null } : {}) });
     window.clearTimeout(this.compileTimer); this.compileTimer = window.setTimeout(this.flush, 120);
   };
@@ -127,13 +131,38 @@ export class GraphController {
       return point.x >= b.minX - pad && point.x <= b.maxX + pad && point.y >= b.minY - pad && point.y <= b.maxY + pad;
     });
   }
+  private hitMath(point: Point, zoom: number) {
+    if (zoom < 0.38) return;
+    return this.state.math.find((node) => {
+      const box = node.scrubTarget?.valueBBox, pad = 8 / zoom;
+      return box && point.x >= box.minX - pad && point.x <= box.maxX + pad && point.y >= box.minY - pad && point.y <= box.maxY + pad;
+    });
+  }
+  editEquation(nodeId: string, text: string) {
+    const node = this.state.math.find((n) => n.id === nodeId);
+    if (!node) return;
+    const old = node.strokeIds.map((id) => this.store.strokes.get(id)).filter((s): s is InkStroke => !!s);
+    const origin = old[0]?.mathOrigin ?? { x: node.bbox.minX + 2, y: node.bbox.minY + 4 };
+    this.store.replace(old, expressionInk(text, origin, nodeId.slice(5)));
+  }
+  setMathValue(nodeId: string, value: number) {
+    if (!Number.isFinite(value) || Math.abs(value) > 1e6) throw new RangeError('Use a value between -1,000,000 and 1,000,000.');
+    const node = this.state.math.find((n) => n.id === nodeId);
+    if (!node?.scrubTarget) return;
+    this.editEquation(nodeId, node.rawExpression.replace(/=.+$/, `=${Number(value.toFixed(3))}`));
+  }
   hover(point: Point, zoom: number) {
     const id = this.hitWeight(point, zoom)?.id ?? null;
-    if (id !== this.hoverEdgeId) { this.hoverEdgeId = id; this.invalidate(); }
-    return !!id;
+    const mathId = this.hitMath(point, zoom)?.id ?? null;
+    if (id !== this.hoverEdgeId || mathId !== this.hoverMathId) { this.hoverEdgeId = id; this.hoverMathId = mathId; this.invalidate(); }
+    return !!id || !!mathId;
   }
   pointerDown(screen: Point, world: Point, zoom: number, shift: boolean) {
     this.pause();
+    const math = this.hitMath(world, zoom);
+    if (math && !this.state.processing) {
+      this.mathScrub = { node: math, startY: screen.y, value: math.scrubTarget!.value }; this.invalidate(); return;
+    }
     const weight = this.hitWeight(world, zoom);
     if (weight && !this.state.processing) {
       this.scrub = { edge: weight, startY: screen.y, value: weight.weight }; this.emit({ selectedEdgeId: weight.id }); return;
@@ -144,6 +173,17 @@ export class GraphController {
     this.selectEdge(edge?.id ?? null);
   }
   pointerMove(screen: Point) {
+    if (this.mathScrub) {
+      const value = Number(Math.max(-1e6, Math.min(1e6, this.mathScrub.node.scrubTarget!.value - (screen.y - this.mathScrub.startY) * 0.05)).toFixed(3));
+      if (value === this.mathScrub.value) return;
+      this.mathScrub.value = value; this.revision++; this.invalidate();
+      if (!this.previewFrame) this.previewFrame = requestAnimationFrame(() => {
+        this.previewFrame = 0;
+        if (this.mathScrub && this.worker) this.send({ type: 'evaluate', revision: this.revision, settings: this.settings,
+          override: { nodeId: this.mathScrub.node.id, value: this.mathScrub.value } });
+      });
+      return;
+    }
     if (!this.scrub) return;
     const value = Number(Math.max(0, Math.min(1e6, this.scrub.edge.weight - (screen.y - this.scrub.startY) * 0.05)).toFixed(3));
     if (value === this.scrub.value) return;
@@ -156,6 +196,16 @@ export class GraphController {
     });
   }
   pointerUp(cancel = false) {
+    if (this.mathScrub) {
+      const scrub = this.mathScrub; this.mathScrub = null;
+      window.cancelAnimationFrame(this.previewFrame); this.previewFrame = 0;
+      if (!cancel && scrub.value !== scrub.node.scrubTarget!.value) this.setMathValue(scrub.node.id, scrub.value);
+      else {
+        this.revision++;
+        if (this.worker) this.send({ type: 'evaluate', revision: this.revision, settings: this.settings });
+      }
+      this.invalidate(); return;
+    }
     const scrub = this.scrub;
     if (!scrub) return;
     this.scrub = null; window.cancelAnimationFrame(this.previewFrame); this.previewFrame = 0;
@@ -163,6 +213,7 @@ export class GraphController {
     else { this.requestTraversal(); this.invalidate(); }
   }
   get weightPreview() { return this.scrub ? { edgeId: this.scrub.edge.id, value: this.scrub.value } : null; }
+  get mathPreview() { return this.mathScrub ? { nodeId: this.mathScrub.node.id, value: this.mathScrub.value } : null; }
   dispose() {
     this.unsubscribe(); window.clearTimeout(this.compileTimer); window.clearTimeout(this.playTimer);
     window.cancelAnimationFrame(this.previewFrame); this.events.abort(); this.worker?.terminate(); this.listeners.clear();

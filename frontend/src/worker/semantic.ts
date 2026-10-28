@@ -16,10 +16,11 @@ export function summarize(clusters: InkCluster[], graph: GraphASTNode | null, ma
     if (!edges.length && equations.length) {
       const plot = [...equations].reverse().find((n) => n.plot)?.plot, last = equations.at(-1)!;
       const errors = equations.filter((n) => n.error).length;
+      const plots = equations.filter((n) => n.plot).length;
       return { ...cluster, bbox: union([cluster.bbox, ...equations.map((n) => n.displayBBox)]), category: 'math_workspace', title: 'Live math',
         primaryMetric: errors ? `${errors} equation error${errors === 1 ? '' : 's'}` : last.plot ? `${last.variableName}(x) · 200 samples`
           : `${last.variableName ?? 'Result'} = ${formatMath(last.numericValue!)}`,
-        secondaryBadge: `${equations.length} equations · ${equations.filter((n) => n.plot).length} plots`, preview: null,
+        secondaryBadge: `${equations.length} equation${equations.length === 1 ? '' : 's'} · ${plots} plot${plots === 1 ? '' : 's'}`, preview: null,
         sparkline: plot?.samples.map(([x, y]) => [x / 10, y === null ? null : (y / plot.range[1] + 1) / 2]) };
     }
     if (!graph || vertices.length < 2 || !edges.length) return { ...cluster, category: 'freeform_notes', title: 'Freehand notes',

@@ -59,7 +59,8 @@ function mathLines(strokes: InkStroke[], excluded: Set<string>): Line[] {
       glyphs.push({ token: token ?? '?', strokes: group, bbox: box });
     }
     glyphs.sort((a, b) => a.bbox.minX - b.bbox.minX);
-    const row = glyphs.filter((g) => Math.abs(centerY(g.bbox) - centerY(b)) < 23);
+    const row = glyphs.filter((g) => g.token === '.' ? Math.abs(centerY(g.bbox) - centerY(b)) < 23
+      : Math.min(g.bbox.maxY, b.maxY) - Math.max(g.bbox.minY, b.minY) >= Math.min(g.bbox.maxY - g.bbox.minY, b.maxY - b.minY) * 0.4);
     // Connected row containing this equals sign; large gaps delimit separate expressions.
     const at = row.indexOf(equal); let start = at, end = at;
     while (start > 0 && row[start].bbox.minX - row[start - 1].bbox.maxX < 45) start--;

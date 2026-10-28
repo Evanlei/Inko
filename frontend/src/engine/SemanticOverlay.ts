@@ -58,6 +58,18 @@ export class SemanticOverlay {
         for (const point of points) { ctx.moveTo(point.x + 2.5 / zoom, point.y); ctx.arc(point.x, point.y, 2.5 / zoom, 0, Math.PI * 2); }
         ctx.fill();
       }
+      if (cluster.sparkline) {
+        const w = Math.min(180 / zoom, r.width - inset * 2), h = Math.max(16 / zoom, r.height - 100 / zoom);
+        ctx.strokeStyle = '#7c9da8'; ctx.lineWidth = 1.5 / zoom; ctx.beginPath();
+        let previous: number | null = null;
+        for (const [x, y] of cluster.sparkline) {
+          if (y === null) { previous = null; continue; }
+          const px = r.x + inset + x * w, py = r.y + 88 / zoom + (1 - y) * h;
+          if (previous === null || Math.abs(y - previous) > 0.5) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          previous = y;
+        }
+        ctx.stroke();
+      }
     }
     ctx.restore();
   }

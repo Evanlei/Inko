@@ -4,6 +4,8 @@ import { PathCache } from './PathCache';
 import { GraphOverlay } from './GraphOverlay';
 import { SemanticOverlay } from './SemanticOverlay';
 import { inkOpacity } from '../types/semantic';
+import { MathOverlay } from './MathOverlay';
+import { union } from '../worker/heuristics';
 import type { InkStroke, Point, Tool } from '../types/canvas';
 
 export interface Metrics { visible: number; total: number; paintMs: number }
@@ -11,6 +13,7 @@ export class Renderer {
   readonly cache = new PathCache();
   readonly overlay = new GraphOverlay();
   readonly semantic = new SemanticOverlay();
+  readonly math = new MathOverlay();
   syncGraphInteraction = () => {};
   activeStroke: InkStroke | null = null;
   cursor: (Point & { tool: Tool }) | null = null;
@@ -96,7 +99,8 @@ export class Renderer {
     ctx.globalAlpha = 1;
     if (this.activeStroke) { ctx.fillStyle = this.activeStroke.color; ctx.fill(this.cache.preview(this.activeStroke)); }
     this.syncGraphInteraction();
-    ctx.globalAlpha = alpha; if (alpha > 0.01) this.overlay.draw(ctx, this.camera.zoom, now);
+    ctx.globalAlpha = alpha;
+    if (alpha > 0.01) { this.overlay.draw(ctx, this.camera.zoom, now); this.math.draw(ctx, this.camera.zoom, this.camera.viewport(this.width, this.height)); }
     ctx.globalAlpha = 1; this.semantic.draw(ctx, this.camera, this.width, this.height);
     ctx.restore();
     if (!this.store.strokes.size && !this.activeStroke) this.welcome();
@@ -114,7 +118,7 @@ export class Renderer {
     if (this.pendingMetrics) { this.onMetrics(this.pendingMetrics); this.pendingMetrics = null; }
   };
   async exportPng(): Promise<Blob> {
-    const box = this.store.bounds();
+    const box = this.contentBounds();
     if (!box) throw new Error('Draw something before exporting.');
     const padding = 48, width = box.maxX - box.minX + padding * 2, height = box.maxY - box.minY + padding * 2;
     const scale = Math.min(2, 4096 / Math.max(width, height));
@@ -127,7 +131,12 @@ export class Renderer {
       ctx.fillStyle = stroke.color; ctx.fill(this.cache.get(stroke));
     }
     this.overlay.draw(ctx, scale, performance.now());
+    this.math.draw(ctx, scale);
     return new Promise((resolve, reject) => output.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not export the drawing.')), 'image/png'));
+  }
+  contentBounds() {
+    const ink = this.store.bounds();
+    return ink ? union([ink, ...this.math.bounds]) : null;
   }
   dispose() {
     window.clearTimeout(this.metricsTimer);
