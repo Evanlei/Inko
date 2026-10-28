@@ -7,11 +7,14 @@ import { compileGraph, recomputeGraph } from './GraphEngine';
 import { InkClustering } from './dbscan';
 import type { InkCluster } from './dbscan';
 import { summarize } from './semantic';
+import { compileMath } from './MathEngine';
+import type { MathASTNode } from '../types/math';
 
 const strokes = new Map<string, InkStroke>(), geometry = new Map<string, Geometry>();
 let graph: GraphASTNode | null = null;
 const clustering = new InkClustering();
 let clusters: InkCluster[] = [];
+let math: MathASTNode[] = [];
 self.onmessage = (event: MessageEvent<InkWorkerRequest>) => {
   const message = event.data, started = performance.now();
   try {
@@ -22,11 +25,12 @@ self.onmessage = (event: MessageEvent<InkWorkerRequest>) => {
         strokes.set(stroke.id, stroke);
         if (!old || old.version !== stroke.version) geometry.set(stroke.id, classifyStroke(stroke));
       }
-      graph = compileGraph([...strokes.values()], message.settings, geometry);
+      graph = compileGraph([...strokes.values()].filter((s) => s.semanticRole !== 'math_symbol' && !s.mathLineId), message.settings, geometry);
       clusters = clustering.update(message.added, message.removedIds);
     }
-    const result = message.type === 'traverse' && graph ? recomputeGraph(graph, message.settings, message.override) : graph;
-    const response: InkWorkerResponse = { type: 'graph', revision: message.revision, graph: result, clusters: summarize(clusters, result), elapsedMs: performance.now() - started };
+    if (message.type !== 'traverse') math = compileMath([...strokes.values()], clusters, new Set(graph?.strokeIds), message.type === 'evaluate' ? message.override : undefined);
+    const result = message.type !== 'compile' && graph ? recomputeGraph(graph, message.settings, message.type === 'traverse' ? message.override : undefined) : graph;
+    const response: InkWorkerResponse = { type: 'graph', revision: message.revision, graph: result, math, clusters: summarize(clusters, result, math), elapsedMs: performance.now() - started };
     self.postMessage(response);
   } catch (error) {
     const response: InkWorkerResponse = { type: 'error', revision: message.revision, message: error instanceof Error ? error.message : 'Could not analyze this graph.' };

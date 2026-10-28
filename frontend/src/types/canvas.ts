@@ -13,6 +13,9 @@ export interface InkStroke {
   semanticRole: 'raw' | 'math_symbol' | 'graph_vertex' | 'graph_edge' | 'graph_weight' | 'plot_axis';
   recognizedToken?: string;
   graphEdgeId?: string;
+  mathLineId?: string;
+  mathTokenIndex?: number;
+  mathOrigin?: Point;
 }
 export type Tool = 'pen' | 'eraser' | 'hand' | 'select';
 export interface CameraState { x: number; y: number; zoom: number }

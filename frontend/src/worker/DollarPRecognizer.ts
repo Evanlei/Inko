@@ -50,11 +50,14 @@ function match(a: Point[], b: Point[]) {
   return minimum;
 }
 export class DollarPRecognizer {
-  private templates = Object.entries(DIGIT_PATHS).flatMap(([token, paths]) => [
+  private templates;
+  constructor(paths: Record<string, number[][][]> = DIGIT_PATHS) {
+    this.templates = Object.entries(paths).flatMap(([token, paths]) => [
     { token, cloud: normalize(paths.map((path) => path.map(([x, y]) => ({ x, y })))) },
     // A common handwritten 1 has no leading hook.
     ...(token === '1' ? [{ token, cloud: normalize([[{ x: 0, y: 0 }, { x: 0, y: 16 }]]) }] : []),
-  ]);
+    ]);
+  }
   recognize(paths: Point[][]): { token: string; confidence: number } | null {
     const cloud = normalize(paths);
     if (cloud.length !== COUNT) return null;
